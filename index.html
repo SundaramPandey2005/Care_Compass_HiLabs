@@ -1,0 +1,589 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Care Compass Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  /* HiLabs palette: navy chrome, brand blue actions, aqua for live data, red/amber/green only for status */
+  --navy: #031335; --navy2: #072669; --blue: #2A6AF1; --blue-2: #5386F4; --blue-soft: #ECF2FE; --aqua: #1BBCE4; --purple: #7034EA;
+  --bg: #F3F5FA; --card: #FFFFFF; --line: #E1E6EF; --ink: #101828; --ink2: #3D4A63; --ink3: #6B7790;
+  --red: #C7281F; --red-soft: #FDECEA; --amber: #B54708; --amber-soft: #FEF4E6; --green: #067647; --green-soft: #EAF7EF;
+  --display: "Manrope", "Segoe UI", system-ui, sans-serif; --body: "Manrope", "Segoe UI", system-ui, sans-serif; --mono: "JetBrains Mono", ui-monospace, Menlo, monospace;
+  /* layout: fixed app bar, left context column only where a member is open, card grid elsewhere */
+  color-scheme: light;
+}
+* { box-sizing: border-box; }
+html, body { height: 100%; margin: 0; }
+body { background: var(--bg); color: var(--ink); font-family: var(--body); font-size: 14px; line-height: 1.45; }
+button, select, input, textarea { font: inherit; color: inherit; }
+button { cursor: pointer; }
+:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+.mono { font-family: var(--mono); font-size: 12px; }
+.tab { font-variant-numeric: tabular-nums; }
+/* app bar */
+.appbar { position: sticky; top: 0; z-index: 20; background: var(--navy); color: #fff; display: flex; align-items: center; gap: 18px; padding: 0 20px; height: 56px; }
+.brand { display: flex; align-items: center; gap: 10px; font-family: var(--display); font-weight: 800; letter-spacing: .2px; }
+.brand .mark { width: 28px; height: 28px; border-radius: 7px; background: linear-gradient(135deg, var(--aqua), var(--blue) 70%, var(--purple)); display: grid; place-items: center; font-size: 13px; }
+.brand small { font-weight: 600; color: #A9C2F9; font-size: 11px; border: 1px solid #2A4785; padding: 1px 6px; border-radius: 4px; }
+.nav { display: flex; gap: 4px; margin-left: 8px; }
+.nav a { color: #B8C6E6; text-decoration: none; font-weight: 600; font-size: 13px; padding: 17px 12px 15px; border-bottom: 3px solid transparent; }
+.nav a.on { color: #fff; border-bottom-color: var(--aqua); }
+.nav a .count { background: var(--blue); color: #fff; border-radius: 10px; padding: 0 6px; font-size: 11px; margin-left: 4px; }
+.spacer { flex: 1; }
+.clock { display: flex; align-items: center; gap: 8px; font-size: 12px; color: #C9D6F2; }
+.clock button { background: #12275A; border: 1px solid #2A4785; color: #fff; border-radius: 6px; padding: 4px 8px; font-size: 12px; }
+.me { display: flex; align-items: center; gap: 8px; font-size: 13px; }
+.avatar { width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-weight: 800; font-size: 12px; background: var(--blue-soft); color: var(--navy2); flex: none; }
+.avatar.lg { width: 44px; height: 44px; font-size: 15px; }
+.me .avatar { background: var(--aqua); color: var(--navy); }
+/* layout */
+main { padding: 20px; max-width: 1440px; margin: 0 auto; }
+.pagehead { display: flex; align-items: flex-end; gap: 16px; margin-bottom: 14px; flex-wrap: wrap; }
+.pagehead h1 { font-family: var(--display); font-size: 22px; margin: 0; letter-spacing: -.2px; text-wrap: balance; }
+.pagehead p { margin: 2px 0 0; color: var(--ink3); font-size: 13px; }
+.btn { border: 1px solid #C9D2E3; background: #fff; border-radius: 8px; padding: 7px 12px; font-weight: 600; font-size: 13px; }
+.btn:hover { border-color: var(--blue); }
+.btn.primary { background: var(--blue); color: #fff; border-color: var(--blue); }
+.btn.primary:hover { background: #1F57D6; }
+.btn.danger { color: var(--red); }
+.btn.sm { padding: 4px 9px; font-size: 12px; }
+.btn[disabled] { opacity: .45; cursor: not-allowed; }
+.card { background: var(--card); border: 1px solid var(--line); border-radius: 12px; }
+.chip { display: inline-flex; align-items: center; gap: 4px; padding: 1px 7px; border-radius: 5px; font-size: 11px; font-weight: 700; background: #EEF1F7; color: var(--ink2); white-space: nowrap; }
+.chip.blue { background: var(--blue-soft); color: var(--navy2); }
+.chip.red { background: var(--red-soft); color: var(--red); }
+.chip.amber { background: var(--amber-soft); color: var(--amber); }
+.chip.green { background: var(--green-soft); color: var(--green); }
+.chip.purple { background: #F1EBFD; color: var(--purple); }
+.dot { width: 8px; height: 8px; border-radius: 50%; display: inline-block; flex: none; }
+.muted { color: var(--ink3); }
+.small { font-size: 12px; }
+.label { font-size: 11px; font-weight: 800; letter-spacing: .6px; color: var(--ink3); text-transform: uppercase; }
+/* board */
+.kpis { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; margin-bottom: 14px; }
+.kpi { padding: 12px 14px; }
+.kpi .v { font-family: var(--display); font-size: 26px; font-weight: 800; }
+.cap { display: grid; grid-template-columns: repeat(5, 1fr); gap: 10px; }
+.capday { padding: 10px 12px; cursor: pointer; }
+.capday.sel { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-soft); }
+.bar { height: 7px; background: #E8ECF4; border-radius: 4px; overflow: hidden; margin-top: 6px; }
+.bar > i { display: block; height: 100%; background: var(--blue); border-radius: 4px; }
+.bar.hot > i { background: var(--red); }
+.lanes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; margin-top: 14px; align-items: start; }
+.lane { background: #E9EDF5; border-radius: 12px; padding: 10px; min-height: 200px; }
+.lane h3 { margin: 2px 4px 10px; font-size: 12px; letter-spacing: .6px; text-transform: uppercase; display: flex; justify-content: space-between; }
+.lane.drop { outline: 2px dashed var(--blue); }
+.mcard { background: #fff; border: 1px solid var(--line); border-radius: 10px; padding: 11px 12px; margin-bottom: 10px; border-left: 4px solid var(--line); cursor: grab; }
+.mcard.today { border-left-color: var(--red); }
+.mcard.week { border-left-color: var(--amber); }
+.mcard.watch { border-left-color: var(--blue-2); }
+.mcard.done { opacity: .7; border-left-color: var(--green); }
+.mcard .top { display: flex; gap: 10px; align-items: center; }
+.mcard .name { font-weight: 800; }
+.mcard .why { margin: 6px 0; font-size: 13px; }
+.mcard .meta { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.mcard .acts { display: flex; gap: 6px; margin-top: 9px; flex-wrap: wrap; }
+.score { font-family: var(--mono); font-weight: 600; font-size: 12px; background: var(--navy); color: #fff; border-radius: 5px; padding: 1px 6px; }
+.mini { background: #fff; border: 1px solid var(--line); border-radius: 8px; padding: 8px 10px; margin-bottom: 8px; display: flex; gap: 8px; align-items: center; font-size: 13px; }
+/* member */
+.mgrid { display: grid; grid-template-columns: 290px 1fr 330px; gap: 14px; align-items: start; }
+.mhead { padding: 14px 16px; display: flex; gap: 14px; align-items: center; flex-wrap: wrap; margin-bottom: 14px; }
+.mhead h1 { font-size: 20px; margin: 0; font-family: var(--display); }
+.facts { display: flex; gap: 18px; flex-wrap: wrap; font-size: 12px; }
+.facts b { display: block; font-size: 13px; color: var(--ink); }
+.banner { display: block; padding: 9px 12px; border-radius: 9px; font-size: 13px; }
+.banner.amber { background: var(--amber-soft); color: #7A2E0B; border: 1px solid #F8D3A7; }
+.banner.green { background: var(--green-soft); color: #054F31; border: 1px solid #A6E3BF; }
+.banner.red { background: var(--red-soft); color: #7A1610; border: 1px solid #F6C1BC; }
+.section { padding: 14px; margin-bottom: 14px; }
+.section h2 { font-size: 14px; margin: 0 0 10px; display: flex; justify-content: space-between; align-items: center; gap: 8px; }
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 12px; flex-wrap: wrap; }
+.tabs button { background: none; border: 0; padding: 9px 12px; font-weight: 700; color: var(--ink3); border-bottom: 2px solid transparent; }
+.tabs button.on { color: var(--blue); border-bottom-color: var(--blue); }
+table { width: 100%; border-collapse: collapse; font-size: 13px; }
+th { text-align: left; font-size: 11px; letter-spacing: .4px; color: var(--ink3); text-transform: uppercase; padding: 7px 8px; background: #F6F8FC; border-bottom: 1px solid var(--line); }
+td { padding: 8px; border-bottom: 1px solid #EEF1F6; vertical-align: top; }
+tr.flag td { background: #FFF8F7; }
+.goal { border: 1px solid var(--line); border-radius: 9px; padding: 9px 10px; margin-bottom: 8px; }
+.goal select { border: 1px solid #C9D2E3; border-radius: 6px; padding: 2px 4px; font-size: 12px; }
+.brief { border: 1px solid #D9D0FB; background: #FCFAFF; }
+.brief h2 { color: var(--purple); }
+.brief ul { margin: 4px 0 10px; padding-left: 18px; }
+.brief li { margin: 3px 0; }
+.cite { color: var(--purple); font-weight: 800; font-size: 11px; cursor: help; }
+.nbs { border: 1.5px solid var(--blue); }
+.nbs .action { font-weight: 800; font-size: 15px; margin: 4px 0 8px; }
+.conf { display: inline-flex; gap: 2px; align-items: flex-end; vertical-align: middle; }
+.conf i { width: 5px; background: #CED5E3; border-radius: 1px; }
+.conf i.on { background: var(--navy2); }
+.feed { display: grid; grid-template-columns: 1fr auto; gap: 2px 8px; padding: 7px 0; border-bottom: 1px solid #EEF1F6; font-size: 13px; }
+/* transitions */
+.tlist { display: grid; grid-template-columns: 300px 1fr; gap: 14px; align-items: start; }
+.titem { padding: 10px 12px; cursor: pointer; margin-bottom: 8px; }
+.titem.sel { border-color: var(--blue); box-shadow: 0 0 0 2px var(--blue-soft); }
+.tl { position: relative; }
+.tlaxis { display: grid; grid-template-columns: 170px 1fr; align-items: end; margin-bottom: 4px; }
+.tlrow { display: grid; grid-template-columns: 170px 1fr; align-items: center; min-height: 54px; border-top: 1px solid #EEF1F6; }
+.tlrow:nth-child(odd) { background: #FAFBFD; }
+.tltrack { position: relative; height: 54px; }
+.ms { position: absolute; top: 9px; transform: translateX(-7px); display: flex; flex-direction: column; align-items: flex-start; gap: 3px; }
+.ms .pt { width: 14px; height: 14px; border-radius: 50%; border: 2px solid #fff; box-shadow: 0 0 0 1px rgba(0,0,0,.08); }
+.ms span { font-size: 11px; white-space: nowrap; font-weight: 600; background: rgba(255,255,255,.92); padding: 0 3px; border-radius: 3px; position: relative; z-index: 3; }
+.seg { position: absolute; top: 14px; height: 5px; border-radius: 3px; }
+.todayline { position: absolute; top: 0; bottom: 0; width: 2px; background: var(--red); z-index: 2; }
+.ticks { position: relative; height: 22px; }
+.ticks span { position: absolute; transform: translateX(-50%); font-size: 11px; color: var(--ink3); white-space: nowrap; }
+/* modal */
+.scrim { position: fixed; inset: 0; background: rgba(3,19,53,.45); display: none; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+.scrim.on { display: flex; }
+.modal { background: #fff; border-radius: 14px; width: min(980px, 100%); max-height: 92%; overflow: auto; box-shadow: 0 20px 60px rgba(3,19,53,.35); }
+.modal header { padding: 14px 18px; border-bottom: 1px solid var(--line); display: flex; align-items: center; gap: 12px; position: sticky; top: 0; background: #fff; z-index: 1; }
+.modal header h3 { margin: 0; font-size: 16px; }
+.modal .body { padding: 16px 18px; }
+.steps { display: flex; gap: 6px; margin-bottom: 14px; flex-wrap: wrap; }
+.steps span { font-size: 12px; font-weight: 700; padding: 4px 10px; border-radius: 20px; background: #EEF1F7; color: var(--ink3); }
+.steps span.on { background: var(--blue); color: #fff; }
+.steps span.ok { background: var(--green-soft); color: var(--green); }
+.callgrid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.phone { display: flex; align-items: center; gap: 10px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 9px; margin-bottom: 8px; }
+.phone.dead { opacity: .55; text-decoration: line-through; }
+.check { display: flex; align-items: center; gap: 8px; padding: 5px 0; }
+.field { margin-bottom: 10px; }
+.field label { display: block; font-size: 12px; font-weight: 700; color: var(--ink2); margin-bottom: 4px; }
+.field input, .field textarea, .field select { width: 100%; border: 1px solid #C9D2E3; border-radius: 8px; padding: 7px 9px; background: #fff; }
+.src { font-size: 10px; font-weight: 800; color: var(--purple); background: #F1EBFD; border-radius: 4px; padding: 0 5px; margin-left: 6px; }
+.src.rn { color: var(--blue); background: var(--blue-soft); }
+.toast { position: fixed; right: 20px; bottom: 20px; background: var(--navy); color: #fff; padding: 11px 16px; border-radius: 10px; box-shadow: 0 10px 30px rgba(3,19,53,.3); z-index: 60; font-size: 13px; transform: translateY(120%); transition: transform .25s; max-width: 380px; }
+.toast.on { transform: none; }
+/* insights */
+.igrid { display: grid; grid-template-columns: 1.2fr 1fr; gap: 14px; }
+.heart td.v { font-family: var(--mono); font-weight: 600; }
+.ns { background: linear-gradient(120deg, var(--navy), var(--navy2)); color: #fff; border: 0; padding: 18px; display: flex; gap: 20px; align-items: center; }
+.ns .big { font-family: var(--display); font-size: 44px; font-weight: 800; }
+.log { max-height: 420px; overflow: auto; }
+.log div { padding: 7px 0; border-bottom: 1px solid #EEF1F6; font-size: 13px; display: grid; grid-template-columns: 62px 1fr; gap: 8px; }
+.tour { background: var(--blue-soft); border: 1px solid #B9CFFB; border-radius: 10px; padding: 10px 14px; margin-bottom: 14px; font-size: 13px; }
+.tour b { color: var(--navy2); }
+@media (max-width: 1100px) { .mgrid { grid-template-columns: 1fr; } .lanes { grid-template-columns: 1fr; } .kpis, .cap { grid-template-columns: repeat(2, 1fr); } .tlist, .igrid, .callgrid { grid-template-columns: 1fr; } .nav a { padding: 17px 7px 15px; } }
+@media (max-width: 640px) { .appbar { flex-wrap: wrap; height: auto; padding: 8px 12px; } .clock .lbl { display: none; } main { padding: 12px; } }
+</style>
+</head>
+<body>
+<div class="appbar">
+  <div class="brand"><div class="mark">Hi</div>Care Compass <small>PILOT</small></div>
+  <nav class="nav" id="nav"></nav>
+  <div class="spacer"></div>
+  <div class="clock"><span class="lbl">Demo date</span><b id="clock" class="tab"></b><button id="nextDay" title="Move the demo clock forward one business day">Next day ›</button><button id="reset" title="Restore the starting data">Reset</button></div>
+  <div class="me"><span>Maria R., RN</span><div class="avatar">MR</div></div>
+</div>
+<main id="app"></main>
+<div class="scrim" id="scrim"><div class="modal" id="modal"></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+/* ============================ DATA (synthetic) ============================ */
+const DAY0 = new Date(2026, 10, 16); // Monday 16 Nov 2026, 08:00
+const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri"];
+const CAPACITY = [16, 16, 16, 16, 12];
+const BASE_LOAD = [11, 10, 8, 13, 6]; // touches already planned for the 37 stable + follow-up members [E]
+
+function seed() {
+  return {
+    dayIdx: 0,
+    members: [
+      { id: "P1", name: "Prakash Shetty", ini: "PS", age: 69, sex: "M", mid: "M-61530", plan: "D-SNP HMO · full dual", cond: "COPD (GOLD 3), type 2 diabetes", lang: "English, Kannada", pcp: "Dr. Arvind Rao",
+        harm: 5, time: 5, reach: 2, day: 0, status: "open", reason: "Day 2 after discharge: home oxygen not delivered; new inhaler rejected; stopped inhaler auto-refilled",
+        sources: ["ADT", "CCD", "DME", "PBM"], conf: 3, best: "9–11 am", transition: true, d0: -2, tocDue: 1,
+        consent: [{ who: "Usha Shetty", rel: "Wife", basis: "HIPAA authorization to 30 Sep 2027", ok: true }],
+        phones: [{ num: "555-0158", owner: "Member · home", status: "works", note: "Answered 2 Oct" }, { num: "555-0161", owner: "Wife Usha · authorized", status: "works", note: "Mobile" }],
+        idfacts: ["Full name", "Date of birth 2 Apr 1957", "Address 12 Palm Grove"],
+        goals: [{ g: "Breathe safely at home after discharge", b: "Oxygen not delivered; inhaler PA needed", s: "Blocked" }, { g: "Keep follow-ups within 14 days", b: "Pulmonology not booked", s: "At risk" }],
+        meds: [["Home oxygen", "2 L/min continuous", "DME order says 3 L/min", "Not listed", "Conflict"], ["Umeclidinium/vilanterol", "START daily", "Rejected: PA required", "Not listed", "Not filled"], ["Tiotropium", "STOP", "Auto-refilled 15 Nov", "Active", "Conflict"], ["Prednisone taper", "40 mg, 5 days", "Filled 14 Nov", "Not listed", "Matches"]],
+        feeds: [["ADT (HIE)", "Sat 14 Nov 11:20", 3], ["Discharge summary (C-CDA)", "Sat 14 Nov 18:30", 3], ["Pharmacy claims", "Today 07:00", 3], ["DME vendor status", "Today 06:30", 2], ["Medical claims", "Complete to 30 Oct", 1], ["Appointments", "Today 07:45", 2]],
+        brief: { changed: [["Discharged Sat after COPD admission", 1], ["Oxygen ordered Sat; vendor says 'pending verification'", 3], ["New inhaler claim rejected (PA required); old inhaler refilled Sun", 4]], cover: ["Is oxygen at home now? How is breathing at rest? (ask, don't assume)", "Which inhaler is he using today?", "Flow rate: discharge says 2 L/min, vendor 3 L/min: confirm with prescriber, not with member"], skip: "Address, PCP, allergies (confirmed 2 Oct)", ifs: [["Short of breath at rest or oxygen missing", "clinical escalation protocol now (RN judgment)"], ["Oxygen at home and working", "confirm flow setting label; book pulmonology"]], cites: ["ADT 14 Nov 11:20", "CCD 14 Nov 18:30", "DME 16 Nov 06:30", "PBM 15 Nov"] },
+        next: { text: "Call Prakash or Usha by 9:00: confirm oxygen at home, then call the DME vendor; send flow-rate conflict and inhaler PA to the prescriber.", why: ["Oxygen gap on day 2", "TOC contact due Tue", "3 sources agree"] },
+        onSign: ["Call DME vendor: deliver today, confirm 2 vs 3 L/min with prescriber", "Prescriber: submit inhaler PA; cancel tiotropium refill", "Book pulmonology by 28 Nov"],
+        milestones: [{ lane: "Hospital (ADT, CCD)", items: [{ d: 0, label: "Discharged · summary received", st: "done" }] }, { lane: "TOC contact", items: [{ d: 3, label: "Call by Tue 17 Nov", st: "open", key: "toc" }] }, { lane: "Oxygen (DME)", items: [{ d: 2, label: "Delivered? vendor: pending", st: "gap", key: "dme" }] }, { lane: "Inhaler (PBM)", items: [{ d: 2, label: "New inhaler rejected: PA needed", st: "gap", key: "pa" }] }, { lane: "Med reconciliation", items: [{ d: 30, label: "By day 30 · 2 L vs 3 L conflict", st: "open", key: "mrp" }] }, { lane: "Follow-up visits", items: [{ d: 6, label: "PCP Fri 20 Nov booked", st: "done" }, { d: 14, label: "Pulmonology not booked", st: "gap", key: "pulm" }] }] },
+      { id: "P3", name: "Rakesh Gupta", ini: "RG", age: 72, sex: "M", mid: "M-74102", plan: "MA-PD · not dual", cond: "Colorectal cancer on oral capecitabine", lang: "English, Hindi", pcp: "Dr. Kiran Bhat (oncology)",
+        harm: 5, time: 4, reach: 2, day: 0, status: "open", reason: "Oral chemo approved 6 Nov but specialty pharmacy holds it for a $1,850 copay; cycle 1 a week late",
+        sources: ["Auth", "Specialty Rx", "Onc note"], conf: 3, best: "Morning",
+        consent: [{ who: "Anjali Gupta", rel: "Daughter", basis: "HIPAA authorization to 30 Apr 2027", ok: true }],
+        phones: [{ num: "555-0183", owner: "Member · mobile", status: "works", note: "Answered 2 Nov" }, { num: "555-0185", owner: "Daughter Anjali · authorized", status: "works", note: "" }],
+        idfacts: ["Full name", "Date of birth 27 Jan 1954", "Address 5 Lotus Court"],
+        goals: [{ g: "Start oral chemo cycle 1", b: "Copay $1,850", s: "Blocked" }, { g: "Manage side effects at home", b: "None known", s: "On track" }, { g: "Know when to call oncology", b: "Teach-back not done", s: "Due" }],
+        meds: [["Capecitabine", "Start 9 Nov (oncology note)", "On hold: copay $1,850 (old MBI)", "Not listed", "Not filled"]],
+        feeds: [["Specialty pharmacy status", "Today 07:00", 3], ["Prior auth (UM)", "6 Nov", 3], ["Oncology note", "30 Oct", 2], ["Medical claims", "Complete to 10 Nov", 2]],
+        brief: { changed: [["Prior auth approved 6 Nov", 2], ["Pharmacy holds shipment for $1,850 copay", 1], ["Oncology planned start 9 Nov; no fill yet", 3]], cover: ["Has he started, or is he waiting? (ask, don't assume)", "Payment options he qualifies for (see options)", "Anjali is authorized if he wants her on the call"], skip: "Address, PCP, allergies, pharmacy (confirmed 2 Nov)", ifs: [["Not started, cost is the issue", "walk through payment options"], ["Fever or severe diarrhoea", "oncology on-call now (RN judgment)"]], cites: ["Specialty Rx 16 Nov 07:00", "UM 6 Nov", "Oncology note 30 Oct"] },
+        options: ["Medicare Prescription Payment Plan: spreads out-of-pocket costs into monthly payments", "Extra Help (LIS) screen: 5-minute income check", "Independent charity foundation (manufacturer coupons are not allowed in Part D)", "2026 Part D out-of-pocket cap: $2,100 a year"],
+        next: { text: "Call Rakesh at 9:30: explain payment options, release the shipment, and tell the oncology nurse about the delay.", why: ["Therapy approved but not delivered", "Cycle 1 already 7 days late", "Specialty status updated today"] },
+        onSign: ["Call OncoSpecialty Rx: release on payment plan", "Notify oncology RN of start delay (oncology sets new date)", "Check-in Thu: started?"] },
+      { id: "P2", name: "Hemant Joshi", ini: "HJ", age: 81, sex: "M", mid: "M-58201", plan: "D-SNP HMO · full dual", cond: "Ischemic stroke (Oct), expressive aphasia, hypertension", lang: "Hindi, English", pcp: "Dr. Meera Sethi",
+        harm: 4, time: 5, reach: 1, day: 0, status: "open", reason: "Home from SNF Fri (no ADT, fax only); home therapy approved but not started; statin dose differs",
+        sources: ["Auth", "Fax", "PBM", "Eligibility"], conf: 2, best: "10 am–12 pm", transition: true, d0: -3, tocDue: 1,
+        consent: [{ who: "Nikhil Joshi", rel: "Son (other city)", basis: "HIPAA authorization to 31 Jan 2027", ok: true }, { who: "Kusum Joshi", rel: "Wife, live-in caregiver", basis: "Not on file: needs Hemant's verbal OK while present", ok: false, verbal: true }],
+        phones: [{ num: "555-0172", owner: "Home · member and wife", status: "works", note: "Wife usually answers" }, { num: "555-0174", owner: "Son Nikhil · authorized", status: "works", note: "Evenings" }],
+        idfacts: ["Full name", "Date of birth 19 Aug 1945", "Address 88 River Bend"],
+        goals: [{ g: "Regain speech and mobility at home", b: "Home therapy not started", s: "Blocked" }, { g: "Support caregiver", b: "Strain not screened since Jan", s: "Unknown" }],
+        meds: [["Atorvastatin", "80 mg daily (SNF fax p.2)", "20 mg filled 14 Nov", "20 mg", "Dose differs"], ["Clopidogrel", "75 mg daily (new)", "Filled 14 Nov", "Not listed", "Matches"]],
+        feeds: [["SNF discharge (fax PDF)", "Fri 13 Nov 16:40", 2], ["Home health status", "Today 06:30", 2], ["Pharmacy claims", "Today 07:00", 3], ["ADT", "No message for SNF discharge", 0], ["Eligibility", "Duplicate ID M-58210 found", 2]],
+        brief: { changed: [["Discharged from SNF Fri (fax p.1); no ADT exists", 1], ["Home health approved 12 Nov; agency has no referral packet", 2], ["Atorvastatin 80 mg ordered, 20 mg filled", 3]], cover: ["Ask Hemant if his wife may join the call; log his answer", "Has any therapist visited yet?", "Caregiver strain: 2-question screen with Kusum (if he agrees)"], skip: "PCP, allergies, pharmacy (confirmed 21 Oct)", ifs: [["Hemant cannot indicate agreement", "speak only with son Nikhil (authorized)"], ["New weakness or speech change", "emergency services now (RN judgment)"]], cites: ["SNF fax 13 Nov", "Home health 16 Nov 06:30", "PBM 14 Nov"] },
+        next: { text: "Call at 10:00 with Hemant's agreement for his wife to join; send the referral packet to the agency; statin dose to PCP.", why: ["SNF discharge with no ADT", "TOC contact due Tue", "Home therapy not started"] },
+        onSign: ["Send SNF summary + orders to CareFirst Home Health", "PCP: atorvastatin 80 vs 20 mg", "Book 7-day PCP visit by 20 Nov", "Merge duplicate record M-58210"],
+        milestones: [{ lane: "SNF discharge (fax)", items: [{ d: 0, label: "Fax received Fri 16:40", st: "done" }] }, { lane: "TOC contact", items: [{ d: 4, label: "Call by Tue 17 Nov", st: "open", key: "toc" }] }, { lane: "Home therapy", items: [{ d: 3, label: "Start of care: packet missing", st: "gap", key: "hh" }] }, { lane: "Med reconciliation", items: [{ d: 30, label: "Statin 80 vs 20 mg", st: "open", key: "mrp" }] }, { lane: "Follow-up visits", items: [{ d: 7, label: "PCP 7-day visit not booked", st: "gap", key: "pcp" }, { d: 25, label: "Neurology 8 Dec booked", st: "done" }] }] },
+      { id: "P4", name: "Sunita Kapoor", ini: "SK", age: 66, sex: "F", mid: "M-66914", plan: "MA-PD · not dual", cond: "CKD stage 4, type 2 diabetes, hypertension", lang: "Hindi (interpreter)", pcp: "Dr. Arvind Rao",
+        harm: 3, time: 4, reach: 2, day: 2, status: "open", reason: "eGFR 31 → 24 and metformin still filled; nephrology referral 5 months open; reachable on a new number",
+        sources: ["Labs", "PBM", "Contacts"], conf: 3, best: "After 6 pm (SMS first)",
+        consent: [],
+        phones: [{ num: "555-0190", owner: "Member · on file", status: "dead", note: "Disconnected · 4 failed calls" }, { num: "555-0193", owner: "Member · from pharmacy + DME feeds", status: "unverified", note: "Never tried" }],
+        idfacts: ["Full name", "Date of birth 11 Jun 1960", "Address 301 Banyan Apts"],
+        goals: [{ g: "Protect kidney function", b: "Nephrology not seen; metformin at eGFR 24", s: "At risk" }],
+        meds: [["Metformin", "500 mg twice daily (care plan, May)", "Filled 28 Oct", "Active", "Safety flag"], ["Lisinopril", "20 mg daily", "Filled 28 Oct", "Active", "Matches"]],
+        feeds: [["Labs", "21 Oct (eGFR 24)", 3], ["Pharmacy claims", "Today 07:00", 3], ["Contacts", "Old number dead", 2], ["Referrals", "Nephrology open since 10 Jun", 3]],
+        brief: { changed: [["eGFR fell from 31 (May) to 24 (21 Oct)", 1], ["Metformin still filled monthly (last 28 Oct)", 2], ["New number 555-0193 seen in pharmacy and DME feeds", 2]], cover: ["Verify identity on the new number first", "Is she still taking metformin? (ask; prescriber decides)", "Rebook nephrology; offer interpreter and ride"], skip: "Conditions, PCP (confirmed May)", ifs: [["Not her number", "mark wrong; letter + PCP office outreach"], ["Feels unwell, swelling, breathless", "same-day PCP (RN judgment)"]], cites: ["Labs 21 Oct", "PBM 28 Oct", "DME ship-to 3 Nov"] },
+        next: { text: "Text in Hindi to 555-0193 now, verify identity, call after 6 pm; send metformin at eGFR 24 to the prescriber; rebook nephrology.", why: ["Unsafe drug for kidney function", "Referral aging 5 months", "New reachable number"] },
+        onSign: ["Prescriber: review metformin at eGFR 24", "Book nephrology with interpreter + ride", "Set 555-0193 as primary"] },
+      { id: "P5", name: "Lalitha Iyer", ini: "LI", age: 85, sex: "F", mid: "M-80377", plan: "D-SNP HMO · full dual", cond: "Atrial fibrillation (apixaban), osteoporosis, insomnia, anxiety", lang: "Tamil, English", pcp: "Dr. Meera Sethi",
+        harm: 4, time: 3, reach: 1, day: 3, status: "open", reason: "3 falls in 90 days (one only in a call note); lorazepam and zolpidem from two pharmacies; on apixaban",
+        sources: ["PBM ×2", "Claims", "Call note"], conf: 3, best: "After 4 pm (landline)",
+        consent: [{ who: "Revathi Iyer", rel: "Daughter (Singapore)", basis: "HIPAA authorization to 31 Mar 2027", ok: true }],
+        phones: [{ num: "555-0152", owner: "Member · landline", status: "works", note: "After 4 pm" }, { num: "+65 555-0199", owner: "Daughter Revathi · authorized", status: "works", note: "Her evening" }],
+        idfacts: ["Full name", "Date of birth 5 Mar 1941", "Address 17 Temple St"],
+        goals: [{ g: "No falls at home", b: "Two sedatives; no grab bars; no alert device", s: "At risk" }],
+        meds: [["Lorazepam", "Psychiatry letter (Aug)", "Filled 30 Oct · Temple Street Chemist", "Not listed", "Duplicate class"], ["Zolpidem", "PCP", "Filled 2 Nov · MedPlus Westfield", "Active", "Duplicate class"], ["Apixaban", "2.5 mg twice daily", "Filled 2 Nov", "Active", "Matches"]],
+        feeds: [["Pharmacy claims (2 pharmacies)", "Today 07:00", 3], ["Medical claims", "Complete to 6 Oct", 1], ["CM note (fall 22 Oct)", "25 Oct", 2]],
+        brief: { changed: [["Third fall on 22 Oct reported by daughter, not in claims", 3], ["Lorazepam and zolpidem filled at two pharmacies", 1], ["On apixaban: falls carry bleeding risk", 1]], cover: ["Any falls or dizziness since 22 Oct?", "Offer pharmacist medication review", "Emergency-alert device benefit and home safety visit"], skip: "Address, allergies (confirmed Oct)", ifs: [["Head injury since last fall", "urgent evaluation (RN judgment)"]], cites: ["PBM 30 Oct / 2 Nov", "CM note 25 Oct"] },
+        next: { text: "Book a pharmacist medication review; send duplicate sedatives to PCP and psychiatrist; enrol the emergency-alert benefit; call at 4:30 pm.", why: ["Duplicate sedative class", "Falls on an anticoagulant", "Two prescribers unaware of each other"] },
+        onSign: ["Pharmacist medication review this week", "PCP + psychiatry: duplicate sedatives", "Enrol emergency-alert benefit; OT home safety"] },
+    ],
+    watch: [["Ravi Menon", "Planned 30-day check-in"], ["Geeta Nair", "HRA due in 3 weeks"], ["Anil Kulkarni", "BP log reviewed, stable"], ["Shobha Rao", "Refill on time; no new signal"], ["Imran Sheikh", "Follow-up visit kept 12 Nov"], ["Pooja Desai", "Transport arranged for 24 Nov"]],
+    suppressed: [{ id: "S1", member: "Prakash Shetty", text: "Tiotropium 'gap' after the inhaler switch is expected, not missed doses.", restored: false }],
+    tasks: [{ t: "Mail HRA reminder to Geeta Nair", due: 4, done: false, who: "Maria" }],
+    log: [], dismissed: 0, approved: 0, overrides: 0, forward: 0, touches: 0, briefs: 0, prepSaved: 0, calls: 0, connects: 0,
+  };
+}
+let S;
+try { S = JSON.parse(localStorage.getItem("compass-proto-v1")) || seed(); } catch (e) { S = seed(); }
+const save = () => { try { localStorage.setItem("compass-proto-v1", JSON.stringify(S)); } catch (e) {} };
+
+/* ============================ HELPERS ============================ */
+const $ = (q) => document.querySelector(q);
+const esc = (t) => String(t).replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const dateOf = (i) => { const d = new Date(DAY0); let k = 0; while (k < i) { d.setDate(d.getDate() + 1); if (d.getDay() !== 0 && d.getDay() !== 6) k++; } return d; };
+const fmt = (d) => d.toLocaleDateString("en-GB", { weekday: "short", day: "numeric", month: "short" });
+const now = () => { const d = dateOf(S.dayIdx); return fmt(d) + " 2026"; };
+const M = (id) => S.members.find((m) => m.id === id);
+const score = (m) => m.harm * m.time + m.reach;
+const lane = (m) => (m.status === "done" ? "done" : m.laneOverride || (score(m) >= 18 ? "today" : score(m) >= 10 ? "week" : "watch"));
+const confBars = (n) => `<span class="conf" title="${["", "Low", "Medium", "High"][n]} confidence">${[8, 11, 14].map((h, i) => `<i class="${i < n ? "on" : ""}" style="height:${h}px"></i>`).join("")}</span>`;
+const stamp = () => { const d = dateOf(S.dayIdx); const h = 8 + Math.min(9, Math.floor(S.log.length / 2)); const mi = (S.log.length * 7) % 60; return `${String(h).padStart(2, "0")}:${String(mi).padStart(2, "0")}`; };
+function logIt(t, kind = "") { S.log.unshift({ t, at: `${DAYS[S.dayIdx % 5] || ""} ${stamp()}`, kind }); save(); }
+function toast(t) { const el = $("#toast"); el.innerHTML = t; el.classList.add("on"); clearTimeout(toast.h); toast.h = setTimeout(() => el.classList.remove("on"), 3200); }
+const daysToToc = (m) => (m.transition ? m.tocDue - S.dayIdx : null);
+
+/* ============================ NAV ============================ */
+function nav() {
+  const r = location.hash.slice(1) || "board";
+  const open = S.members.filter((m) => m.status !== "done" && lane(m) === "today").length;
+  const tasks = S.tasks.filter((t) => !t.done).length;
+  const items = [["board", "Week Board", open], ["transitions", "Transitions", S.members.filter((m) => m.transition && m.status !== "done").length], ["members", "Members", 0], ["tasks", "Tasks", tasks], ["insights", "Insights", 0]];
+  $("#nav").innerHTML = items.map((i) => `<a href="#${i[0]}" class="${r === i[0] || (i[0] === "members" && r.startsWith("member-")) ? "on" : ""}">${i[1]}${i[2] ? `<span class="count">${i[2]}</span>` : ""}</a>`).join("");
+  $("#clock").textContent = now();
+}
+
+/* ============================ WEEK BOARD ============================ */
+function load(i) { return BASE_LOAD[i] + S.members.filter((m) => m.status !== "done" && m.day === i).length; }
+function memberCard(m) {
+  const l = lane(m), toc = daysToToc(m);
+  const due = m.transition && m.status !== "done" ? (toc < 0 ? `<span class="chip red">TOC overdue</span>` : toc === 0 ? `<span class="chip red">TOC due today</span>` : `<span class="chip amber">TOC due ${fmt(dateOf(m.tocDue)).split(" ")[0]}</span>`) : "";
+  return `<div class="mcard ${l}" draggable="true" data-drag="${m.id}">
+    <div class="top"><div class="avatar">${m.ini}</div><div style="flex:1"><div class="name">${esc(m.name)}, ${m.age}</div><div class="small muted">${esc(m.plan)}</div></div><span class="score" title="Harm ${m.harm} × Time ${m.time} + Reach ${m.reach}">${score(m)}</span></div>
+    <div class="why">${esc(m.reason)}</div>
+    <div class="meta">${due}${m.sources.map((s) => `<span class="chip">${s}</span>`).join("")}${confBars(m.conf)}</div>
+    <div class="meta small muted" style="margin-top:6px">Planned: <select data-day="${m.id}" aria-label="Planned day for ${esc(m.name)}">${DAYS.map((d, i) => `<option value="${i}" ${m.day === i ? "selected" : ""} ${i < S.dayIdx ? "disabled" : ""}>${d}</option>`).join("")}</select> · best ${esc(m.best)}${m.laneOverride ? ` · <span class="chip purple">RN override</span>` : ""}</div>
+    <div class="acts">${m.status === "done" ? `<span class="chip green">Moved forward today</span><a class="btn sm" href="#member-${m.id}">Open</a>` : `<button class="btn sm primary" data-call="${m.id}">Start call</button><a class="btn sm" href="#member-${m.id}">Open cockpit</a><button class="btn sm" data-why="${m.id}">Why here?</button>`}</div>
+  </div>`;
+}
+function board() {
+  const ms = S.members;
+  const by = { today: [], week: [], watch: [], done: [] };
+  ms.forEach((m) => by[lane(m)].push(m));
+  by.today.sort((a, b) => score(b) - score(a)); by.week.sort((a, b) => score(b) - score(a));
+  const sup = S.suppressed.filter((x) => !x.restored);
+  const t = (n) => `<div class="kpi card"><div class="label">${n[0]}</div><div class="v tab" style="color:${n[2] || "var(--ink)"}">${n[1]}</div><div class="small muted">${n[3]}</div></div>`;
+  const remaining = ms.filter((m) => m.status !== "done").length;
+  return `
+  <div class="tour"><b>Guided demo:</b> 1. Click <b>Start call</b> on Prakash · 2. verify identity · 3. record the outcome · 4. sign the AI-drafted note. Watch the board re-rank and the metrics move. Use <b>Next day ›</b> to see deadlines turn red.</div>
+  <div class="pagehead"><div><h1>Week of 16 Nov · Maria's caseload</h1><p>48 members · ${remaining} need a decision this week · ranked by cost of delay (harm × time pressure + reachable now)</p></div></div>
+  <div class="kpis">${[["Act today", by.today.length, "var(--red)", "score ≥ 18"], ["This week", by.week.length, "var(--amber)", "score 10–17"], ["Moved forward", S.forward, "var(--green)", "North Star, today"], ["Watch", S.watch.length + by.watch.length, "", "no new signal needs action"], ["Suppressed", sup.length, "", "expected gaps, restorable"]].map(t).join("")}</div>
+  <div class="card" style="padding:12px 14px">
+    <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px"><div class="label">Capacity this week · member touches planned / available</div><div class="small muted">${load(3) / CAPACITY[3] > 0.85 ? "Thu is nearly full: move a 'this week' member to Wed by changing their planned day." : "Load is balanced."}</div></div>
+    <div class="cap" style="margin-top:8px">${DAYS.map((d, i) => { const l = load(i), c = CAPACITY[i], hot = l / c > 0.85; return `<div class="capday card ${i === S.dayIdx ? "sel" : ""}"><div style="display:flex;justify-content:space-between"><b>${d} ${dateOf(i).getDate()}</b><span class="tab small ${hot ? "" : "muted"}" style="${hot ? "color:var(--red);font-weight:800" : ""}">${l}/${c}</span></div><div class="bar ${hot ? "hot" : ""}"><i style="width:${Math.min(100, (l / c) * 100)}%"></i></div></div>`; }).join("")}</div>
+  </div>
+  <div class="lanes">
+    <div class="lane" data-lane="today"><h3><span style="color:var(--red)">Act today · ${by.today.length}</span><span class="muted">≥ 18</span></h3>${by.today.map(memberCard).join("") || `<div class="mini muted">Nothing urgent left today.</div>`}${by.done.map(memberCard).join("")}</div>
+    <div class="lane" data-lane="week"><h3><span style="color:var(--amber)">This week · ${by.week.length}</span><span class="muted">10–17</span></h3>${by.week.map(memberCard).join("") || `<div class="mini muted">Empty</div>`}</div>
+    <div class="lane" data-lane="watch"><h3><span style="color:var(--navy2)">Watch · ${S.watch.length + by.watch.length}</span><span class="muted">&lt; 10</span></h3>
+      ${by.watch.map(memberCard).join("")}
+      ${S.watch.map((w) => `<div class="mini"><div class="avatar">${w[0].split(" ").map((x) => x[0]).join("")}</div><div><b>${w[0]}</b><div class="small muted">${w[1]}</div></div></div>`).join("")}
+      <div class="mini" style="display:block"><b>37 stable members</b><div class="small muted">No new signal since last contact.</div></div>
+      ${sup.map((x) => `<div class="mini" style="display:block;border-style:dashed"><div class="label">Suppressed</div><div><b>${x.member}:</b> ${x.text}</div><button class="btn sm" style="margin-top:6px" data-restore="${x.id}">Restore to board</button></div>`).join("")}
+    </div>
+  </div>`;
+}
+
+/* ============================ MEMBER COCKPIT ============================ */
+let mtab = "plan";
+function memberPage(id) {
+  const m = M(id); if (!m) return `<p>Member not found.</p>`;
+  const toc = daysToToc(m);
+  const consentBanner = m.consent.length ? m.consent.map((c) => `<div class="banner ${c.ok ? "green" : "amber"}"><b>${c.ok ? "May hear PHI" : "Not authorized"}:</b> ${esc(c.who)} (${esc(c.rel)}) · ${esc(c.basis)}</div>`).join("") : `<div class="banner amber"><b>No representative on file.</b> Share PHI only with the member after identity is verified.</div>`;
+  const tocBanner = m.transition && m.status !== "done" ? `<div class="banner ${toc <= 0 ? "red" : "amber"}"><b>Transition of care:</b> contact ${toc < 0 ? "is overdue" : toc === 0 ? "is due today" : "due " + fmt(dateOf(m.tocDue))} (2 business days after discharge)</div>` : "";
+  const tabs = [["plan", "Care plan"], ["meds", "Medications"], ["brief", "Pre-call brief"], ["data", "Data & freshness"]];
+  let body = "";
+  if (mtab === "plan") body = `<div class="section card"><h2>Goals and barriers <span class="small muted">from the CM system; barrier status from feeds</span></h2>${m.goals.map((g, i) => `<div class="goal"><div style="display:flex;justify-content:space-between;gap:8px;align-items:center"><b>${esc(g.g)}</b><select data-goal="${m.id}:${i}" aria-label="Goal status">${["Blocked", "At risk", "Due", "Unknown", "On track", "Met"].map((s) => `<option ${g.s === s ? "selected" : ""}>${s}</option>`).join("")}</select></div><div class="small muted">Barrier: ${esc(g.b)}</div></div>`).join("")}
+    <div class="field" style="margin-top:10px"><label for="newgoal">Add a goal</label><div style="display:flex;gap:6px"><input id="newgoal" placeholder="e.g. Keep oncology visits"><button class="btn" data-addgoal="${m.id}">Add</button></div></div></div>`;
+  if (mtab === "meds") body = `<div class="section card"><h2>Medication lists by source <span class="chip red">${m.meds.filter((x) => x[4] !== "Matches").length} need review</span></h2><div style="overflow-x:auto"><table><thead><tr><th>Medicine</th><th>Discharge / prescriber</th><th>Pharmacy claims</th><th>Care plan</th><th>Status</th></tr></thead><tbody>${m.meds.map((r) => `<tr class="${r[4] !== "Matches" ? "flag" : ""}"><td><b>${esc(r[0])}</b></td><td>${esc(r[1])}</td><td>${esc(r[2])}</td><td class="muted">${esc(r[3])}</td><td><span class="chip ${r[4] === "Matches" ? "green" : r[4] === "Not filled" || r[4] === "Dose differs" ? "amber" : "red"}">${esc(r[4])}</span></td></tr>`).join("")}</tbody></table></div>
+    <p class="small muted" style="margin:10px 0 0">Sources are never merged. A paid claim is not proof the drug is taken; a rejected or on-hold claim is not a fill. Compass routes conflicts to the prescriber and never changes an order.</p>
+    <div style="margin-top:10px"><button class="btn" data-sendrx="${m.id}">Send discrepancy to prescriber</button></div></div>`;
+  if (mtab === "brief") body = briefHtml(m, true);
+  if (mtab === "data") body = `<div class="section card"><h2>Data feeds for this member <span class="small muted">trust layer: identity matched, age stamped</span></h2>${m.feeds.map((f) => `<div class="feed"><div><b>${esc(f[0])}</b><div class="small muted">${esc(f[1])}</div></div><div>${f[2] ? confBars(f[2]) : `<span class="chip amber">not visible</span>`}</div></div>`).join("")}<p class="small muted" style="margin:10px 0 0">'Not visible' is never shown as 'none'. Bars: agreement and freshness of the feed.</p></div>`;
+  return `<div class="pagehead"><div><p><a href="#board">Week Board</a> / ${esc(m.name)}</p></div></div>
+  <div class="card mhead"><div class="avatar lg">${m.ini}</div><div style="flex:1;min-width:220px"><h1>${esc(m.name)}, ${m.age}</h1><div class="facts muted"><span>Member ID <b class="mono">${m.mid}</b></span><span>Plan <b>${esc(m.plan)}</b></span><span>PCP <b>${esc(m.pcp)}</b></span><span>Language <b>${esc(m.lang)}</b></span></div><div class="small muted" style="margin-top:4px">${esc(m.cond)}</div></div>
+  <div style="text-align:right"><span class="chip ${lane(m) === "today" ? "red" : lane(m) === "week" ? "amber" : lane(m) === "done" ? "green" : "blue"}">${{ today: "Act today", week: "This week", watch: "Watch", done: "Moved forward" }[lane(m)]}</span> <span class="score">${score(m)}</span><div class="small muted" style="margin-top:4px">Harm ${m.harm} × Time ${m.time} + Reach ${m.reach}</div></div></div>
+  <div style="display:grid;gap:8px;margin-bottom:14px">${tocBanner}${consentBanner}</div>
+  <div class="mgrid">
+    <div>${m.transition ? `<div class="section card"><h2>Transition <a class="btn sm" href="#transitions" data-tsel="${m.id}">Open timeline</a></h2><div class="small">${m.milestones.map((l) => l.items.map((it) => `<div style="display:flex;gap:8px;align-items:center;padding:4px 0"><span class="dot" style="background:${stColor(it)}"></span>${esc(it.label)}</div>`).join("")).join("")}</div></div>` : ""}
+      <div class="section card"><h2>Contact</h2>${m.phones.map((p, i) => `<div class="phone ${p.status === "dead" ? "dead" : ""}"><div style="flex:1"><b class="mono">${p.num}</b><div class="small muted">${esc(p.owner)} · ${esc(p.note)}</div></div><span class="chip ${p.status === "works" ? "green" : p.status === "dead" ? "red" : "amber"}">${p.status}</span></div>`).join("")}<div class="small muted">Best time: ${esc(m.best)}</div></div>
+      <div class="section card"><h2>Planted data issues</h2><div class="small">${(ISSUES[m.id] || []).map((x) => `<div style="padding:4px 0;border-bottom:1px solid #EEF1F6">⚠ ${esc(x)}</div>`).join("")}</div></div></div>
+    <div><div class="tabs">${tabs.map((t) => `<button data-mtab="${t[0]}" class="${mtab === t[0] ? "on" : ""}">${t[1]}</button>`).join("")}</div>${body}</div>
+    <div>${nbsHtml(m)}</div>
+  </div>`;
+}
+const ISSUES = { P1: ["Oxygen 2 L/min on discharge, 3 L/min on DME order", "New inhaler rejected looks like a fill attempt", "Stopped inhaler auto-refilled", "DME ships to an old address", "Inpatient claim not yet received"], P2: ["No ADT for SNF discharge", "SNF summary only as a fax PDF", "Duplicate record 'Hemanth Joshi'", "Statin 80 vs 20 mg", "Live-in wife not authorized"], P3: ["PA approved vs pharmacy on hold", "Specialty claim under old MBI", "Cycle 1 due 9 Nov, no fill", "HRA cost answer 7 months old"], P4: ["Phone on file dead (4 tries)", "New number only in pharmacy/DME feeds", "Creatinine in two units", "Nephrology referral 5 months old"], P5: ["Fall reported, never claimed", "Care plan 9 meds vs PBM 13", "Two pharmacies", "Best time only in a free-text note"] };
+function stColor(it) { if (it.st === "done") return "var(--green)"; if (it.st === "gap") return "var(--red)"; return "var(--amber)"; }
+function briefHtml(m, full) {
+  const c = (i) => `<span class="cite" title="${esc(m.brief.cites[i - 1] || "")}">[${i}]</span>`;
+  return `<div class="section card brief"><h2>✦ Pre-call brief <span class="small" style="color:var(--purple)">AI-drafted · every line cited · verify before use</span></h2>
+    <div class="label">What changed</div><ul>${m.brief.changed.map((x) => `<li>${esc(x[0])} ${c(x[1])}</li>`).join("")}</ul>
+    <div class="label">Cover in this call</div><ul>${m.brief.cover.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>
+    <div class="label">Don't ask again</div><ul><li class="muted">${esc(m.brief.skip)}</li></ul>
+    <div class="label">If they say…</div><ul>${m.brief.ifs.map((x) => `<li><b>${esc(x[0])}</b> → ${esc(x[1])}</li>`).join("")}</ul>
+    ${m.options ? `<div class="label">Options to offer</div><ul>${m.options.map((x) => `<li>${esc(x)}</li>`).join("")}</ul>` : ""}
+    <div class="small muted">Sources: ${m.brief.cites.map((x, i) => `[${i + 1}] ${esc(x)}`).join(" · ")}</div>
+    <div class="banner red" style="margin-top:10px"><b>Guardrail:</b>&nbsp;the brief never advises on dose, schedule or diagnosis. Clinical decisions stay with the treating team.</div>
+    ${full ? `<div style="margin-top:10px;display:flex;gap:8px"><button class="btn" data-regen="${m.id}">Regenerate brief</button><button class="btn primary" data-call="${m.id}">Start call with this brief</button></div>` : ""}</div>`;
+}
+function nbsHtml(m) {
+  if (m.status === "done") return `<div class="section card"><h2>Next best step</h2><div class="banner green"><b>Done today.</b>&nbsp;Note signed; tasks created.</div><div class="small" style="margin-top:8px">${(m.created || []).map((t) => `✓ ${esc(t)}`).join("<br>")}</div></div>`;
+  return `<div class="section card nbs"><div class="label" style="color:var(--blue)">Suggested next best step</div><div class="action">${esc(m.next.text)}</div>
+    <div class="label">Because</div><ul style="margin:4px 0 8px;padding-left:18px">${m.next.why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul>
+    <div class="small">Confidence ${confBars(m.conf)} · score <b class="tab">${score(m)}</b></div>
+    <div style="display:grid;gap:6px;margin-top:12px"><button class="btn primary" data-call="${m.id}">Approve and start call</button><div style="display:flex;gap:6px"><button class="btn" style="flex:1" data-override="${m.id}">Change lane…</button><button class="btn danger" style="flex:1" data-dismiss="${m.id}">Dismiss…</button></div></div>
+    <p class="small muted" style="margin:8px 0 0">AI drafts; Maria decides. Every approval, edit and dismissal is logged.</p></div>
+    <div class="section card"><h2>Pre-call brief</h2><button class="btn sm" data-mtab="brief">Open brief</button><p class="small muted" style="margin:8px 0 0">Replaces opening 6–7 screens: about 11 → 5 min of prep [E].</p></div>`;
+}
+
+/* ============================ TRANSITIONS ============================ */
+let tsel = "P1";
+function transitions() {
+  const list = S.members.filter((m) => m.transition);
+  const m = M(tsel) || list[0];
+  const span = 30, pct = (d) => (d / span) * 100;
+  const today = S.dayIdx - m.d0 + (S.dayIdx > 0 ? 0 : 0); // business offset approximated as calendar for the demo
+  const todayCal = Math.round((dateOf(S.dayIdx) - new Date(2026, 10, 16 + m.d0)) / 86400000);
+  const ticks = [[0, "D0 " + fmt(new Date(2026, 10, 16 + m.d0)).replace(/^\w+ /, "")], [7, "D7"], [14, "D14"], [21, "D21"], [30, "D30"]];
+  return `<div class="pagehead"><div><h1>Transitions · 30-day view</h1><p>Every milestone after a discharge on one axis. The red line is today; red points are gaps.</p></div></div>
+  <div class="tlist"><div>${list.map((x) => { const toc = daysToToc(x); return `<div class="card titem ${x.id === m.id ? "sel" : ""}" data-tpick="${x.id}"><div style="display:flex;gap:10px;align-items:center"><div class="avatar">${x.ini}</div><div style="flex:1"><b>${esc(x.name)}</b><div class="small muted">${x.id === "P2" ? "SNF discharge Fri 13 Nov (fax)" : "Hospital discharge Sat 14 Nov"}</div></div></div><div style="margin-top:6px;display:flex;gap:6px;flex-wrap:wrap">${x.status === "done" ? `<span class="chip green">TOC contact met</span>` : `<span class="chip ${toc <= 0 ? "red" : "amber"}">TOC ${toc < 0 ? "overdue" : toc === 0 ? "due today" : "due " + fmt(dateOf(x.tocDue)).split(" ")[0]}</span>`}<span class="chip red">${x.milestones.flatMap((l) => l.items).filter((i) => i.st === "gap").length} gaps</span></div></div>`; }).join("")}
+    <div class="card" style="padding:10px 12px"><div class="label">Not shown by ADT</div><p class="small" style="margin:4px 0 0">Hemant's SNF discharge sent no ADT message. Compass found it from the closed SNF authorization and the faxed summary.</p></div></div>
+  <div class="card" style="padding:14px 16px">
+    <div style="display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap;align-items:center"><div><b style="font-size:16px">${esc(m.name)}</b> <span class="muted small">${esc(m.cond)}</span></div><div style="display:flex;gap:6px"><a class="btn sm" href="#member-${m.id}">Open cockpit</a>${m.status !== "done" ? `<button class="btn sm primary" data-call="${m.id}">Start call</button>` : ""}</div></div>
+    <div class="tl" style="margin-top:12px">
+      <div class="tlaxis"><div class="label">Lane</div><div class="ticks">${ticks.map((t) => `<span style="left:${pct(t[0])}%">${t[1]}</span>`).join("")}</div></div>
+      ${m.milestones.map((l) => `<div class="tlrow"><div style="font-weight:700;font-size:13px;padding-left:4px">${esc(l.lane)}</div><div class="tltrack">
+        <div class="todayline" style="left:${pct(Math.max(0, Math.min(30, todayCal)))}%"></div>
+        ${l.items.map((it) => { const overdue = it.st !== "done" && it.d < todayCal; const col = overdue ? "var(--red)" : stColor(it); return `${it.st !== "done" && it.d > todayCal ? `<div class="seg" style="left:${pct(todayCal)}%;width:${pct(it.d - todayCal)}%;background:${col};opacity:.35"></div>` : ""}<div class="ms" style="left:${pct(it.d)}%;${it.d > 22 ? "align-items:flex-end;transform:translateX(calc(-100% + 7px))" : ""}"><div class="pt" style="background:${col}"></div><span style="color:${it.st === "gap" || overdue ? "var(--red)" : "var(--ink2)"}">${esc(it.label)}${it.st === "done" ? " ✓" : ""}</span></div>`; }).join("")}
+      </div></div>`).join("")}
+    </div>
+    <div class="small muted" style="margin-top:10px">Today is day ${todayCal} after discharge. Green = done · amber = open · red = gap or overdue. Mark items done from the call workflow or below.</div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap;margin-top:10px">${m.milestones.flatMap((l) => l.items).filter((i) => i.key && i.st !== "done").map((i) => `<button class="btn sm" data-ms="${m.id}:${i.key}">Mark done: ${esc(i.label.split(":")[0])}</button>`).join("")}</div>
+  </div></div>`;
+}
+
+/* ============================ TASKS ============================ */
+function tasks() {
+  const open = S.tasks.filter((t) => !t.done), done = S.tasks.filter((t) => t.done);
+  const row = (t, i) => `<tr><td><input type="checkbox" id="task${i}" data-task="${i}" ${t.done ? "checked" : ""}> </td><td><label for="task${i}" style="${t.done ? "text-decoration:line-through;color:var(--ink3)" : ""}">${esc(t.t)}</label>${t.m ? ` <a class="small" href="#member-${t.m}">${esc(M(t.m).name)}</a>` : ""}</td><td>${esc(t.who)}</td><td class="tab">${DAYS[Math.min(4, t.due)] || "Fri"}</td></tr>`;
+  return `<div class="pagehead"><div><h1>Tasks</h1><p>Created automatically when a call note is signed; also added by hand.</p></div></div>
+  <div class="card" style="padding:12px 14px;margin-bottom:14px"><div style="display:flex;gap:6px;flex-wrap:wrap"><input id="newtask" placeholder="New task" style="flex:1;min-width:200px;border:1px solid #C9D2E3;border-radius:8px;padding:7px 9px"><select id="newtaskday" style="border:1px solid #C9D2E3;border-radius:8px;padding:7px">${DAYS.map((d, i) => `<option value="${i}">${d}</option>`).join("")}</select><button class="btn primary" id="addtask">Add task</button></div></div>
+  <div class="card" style="overflow-x:auto"><table><thead><tr><th style="width:36px"></th><th>Task</th><th>Owner</th><th>Due</th></tr></thead><tbody>${S.tasks.map((t, i) => ({ t, i })).filter((x) => !x.t.done).map((x) => row(x.t, x.i)).join("") || `<tr><td></td><td class="muted">No open tasks.</td><td></td><td></td></tr>`}${S.tasks.map((t, i) => ({ t, i })).filter((x) => x.t.done).map((x) => row(x.t, x.i)).join("")}</tbody></table></div>`;
+}
+
+/* ============================ INSIGHTS ============================ */
+function insights() {
+  const totalDecisions = S.approved + S.dismissed;
+  const dismissRate = totalDecisions ? Math.round((S.dismissed / totalDecisions) * 100) : 0;
+  const connect = S.calls ? Math.round((S.connects / S.calls) * 100) : 0;
+  const rows = [["North Star", "Members moved forward today", "6 [E]", "10", S.forward], ["Engagement", "Member touches today", "11 [E]", "16", S.touches], ["Engagement", "Connect rate this session", "30% [A]", "45%", S.calls ? connect + "%" : "—"], ["Task success", "Prep minutes saved by briefs", "0", "6 per member", S.prepSaved], ["Task success", "Pre-call briefs used", "—", "every touch", S.briefs], ["Adoption", "Suggestions approved", "—", "", S.approved], ["Guardrail", "Suggestions dismissed", "—", "≤ 25%", totalDecisions ? dismissRate + "%" : "—"], ["Guardrail", "Lane overrides by RN", "—", "reviewed weekly", S.overrides]];
+  return `<div class="pagehead"><div><h1>Insights</h1><p>Live counters from this session against the pilot targets (HEART framework).</p></div></div>
+  <div class="igrid"><div>
+    <div class="card ns"><div><div class="label" style="color:#A9C2F9">North Star</div><div style="font-size:16px;font-weight:700">Members moved forward per RN-day</div><div class="small" style="color:#C9D6F2">A care-plan step completed: contact made, barrier cleared or follow-up booked</div></div><div class="big tab">${S.forward}<span style="font-size:20px;color:#A9C2F9"> / 10 target</span></div></div>
+    <div class="card heart" style="margin-top:14px;overflow-x:auto"><table><thead><tr><th>Category</th><th>Metric</th><th>Baseline</th><th>Target</th><th>Now</th></tr></thead><tbody>${rows.map((r) => `<tr><td><b style="color:var(--blue)">${r[0]}</b></td><td>${r[1]}</td><td class="muted">${r[2]}</td><td>${r[3]}</td><td class="v">${r[4]}</td></tr>`).join("")}</tbody></table></div>
+  </div>
+  <div class="card" style="padding:14px"><h2 style="font-size:14px;margin:0 0 8px">Audit log <span class="small muted">every AI draft and RN decision</span></h2><div class="log">${S.log.map((l) => `<div><span class="mono muted">${esc(l.at)}</span><span>${l.t}</span></div>`).join("") || `<p class="muted small">Nothing yet. Start a call from the Week Board.</p>`}</div></div></div>`;
+}
+function membersList() {
+  return `<div class="pagehead"><div><h1>Members</h1><p>Synthetic members in the pilot caseload. Open one to see the cockpit.</p></div></div>
+  <div class="card" style="overflow-x:auto"><table><thead><tr><th>Member</th><th>Plan</th><th>Why now</th><th>Lane</th><th>Score</th></tr></thead><tbody>${S.members.slice().sort((a, b) => score(b) - score(a)).map((m) => `<tr><td><a href="#member-${m.id}"><b>${esc(m.name)}</b></a><div class="small muted mono">${m.mid}</div></td><td class="small">${esc(m.plan)}</td><td class="small">${esc(m.reason)}</td><td><span class="chip ${lane(m) === "today" ? "red" : lane(m) === "week" ? "amber" : lane(m) === "done" ? "green" : "blue"}">${{ today: "Act today", week: "This week", watch: "Watch", done: "Moved forward" }[lane(m)]}</span></td><td><span class="score">${score(m)}</span></td></tr>`).join("")}</tbody></table></div>`;
+}
+
+/* ============================ CALL WORKFLOW (modal) ============================ */
+let call = null;
+function openCall(id) {
+  const m = M(id); if (!m || m.status === "done") return;
+  call = { id, step: 1, phone: m.phones.findIndex((p) => p.status !== "dead"), ids: [], party: "member", verbal: false, outcome: "reached", covered: [], says: "", };
+  S.briefs++; S.prepSaved += 6; logIt(`✦ Pre-call brief generated for <b>${esc(m.name)}</b> (${m.brief.changed.length} changes, ${m.brief.cites.length} sources)`);
+  renderCall(); $("#scrim").classList.add("on");
+}
+function closeCall() { $("#scrim").classList.remove("on"); call = null; render(); }
+function renderCall() {
+  const m = M(call.id), st = call.step;
+  const steps = ["Brief", "Reach", "Verify & consent", "Outcome", "Note & sign"];
+  let body = "";
+  if (st === 1) body = `<div class="callgrid"><div>${briefHtml(m, false)}</div><div><div class="section card nbs"><div class="label" style="color:var(--blue)">Suggested next best step</div><div class="action">${esc(m.next.text)}</div><div class="label">Because</div><ul style="margin:4px 0 8px;padding-left:18px">${m.next.why.map((w) => `<li>${esc(w)}</li>`).join("")}</ul><div class="small">Confidence ${confBars(m.conf)} · score <b class="tab">${score(m)}</b></div></div><div class="section card"><div class="label">Consent on file</div>${m.consent.length ? m.consent.map((c) => `<div class="small" style="padding:3px 0"><span class="dot" style="background:${c.ok ? "var(--green)" : "var(--amber)"}"></span> ${esc(c.who)} · ${c.ok ? "may hear PHI" : "not authorized"}</div>`).join("") : `<div class="small muted">No representative. Member only.</div>`}<p class="small muted" style="margin:8px 0 0">Continue = Maria approves this step. Prep time with the brief: about 5 min instead of 11 [E].</p></div></div></div>`;
+  if (st === 2) body = `<div class="callgrid"><div><div class="label">Numbers, ranked by outcome</div>${m.phones.map((p, i) => `<label class="phone ${p.status === "dead" ? "dead" : ""}"><input type="radio" name="ph" value="${i}" ${call.phone === i ? "checked" : ""} ${p.status === "dead" ? "disabled" : ""}><div style="flex:1"><b class="mono">${p.num}</b><div class="small muted">${esc(p.owner)} · ${esc(p.note)}</div></div><span class="chip ${p.status === "works" ? "green" : p.status === "dead" ? "red" : "amber"}">${p.status}</span></label>`).join("")}<p class="small muted">Dead numbers are demoted with their history. New numbers found in other feeds stay 'unverified' until identity is checked.</p></div>
+    <div><div class="label">Who answered?</div>${["member", ...m.consent.map((c, i) => "rep" + i)].map((v, i) => `<label class="check"><input type="radio" name="party" value="${v}" ${call.party === v ? "checked" : ""}>${i === 0 ? esc(m.name) + " (member)" : esc(m.consent[i - 1].who) + " · " + esc(m.consent[i - 1].rel)}</label>`).join("")}
+    <div class="label" style="margin-top:12px">Call result</div>${[["reached", "Reached"], ["noanswer", "No answer / voicemail"], ["wrong", "Wrong number"]].map((o) => `<label class="check"><input type="radio" name="res" value="${o[0]}" ${call.outcome === o[0] ? "checked" : ""}>${o[1]}</label>`).join("")}</div></div>`;
+  if (st === 3) {
+    const rep = call.party.startsWith("rep") ? m.consent[+call.party.slice(3)] : null;
+    body = `<div class="callgrid"><div><div class="label">Identity check before any PHI (2 of 3)</div>${m.idfacts.map((f, i) => `<label class="check"><input type="checkbox" data-idf="${i}" ${call.ids.includes(i) ? "checked" : ""}>${esc(f)}</label>`).join("")}
+      <div class="banner ${call.ids.length >= 2 ? "green" : "amber"}" style="margin-top:8px">${call.ids.length >= 2 ? "Identity verified · PHI unlocked" : "Verify 2 of 3 to unlock PHI"}</div></div>
+      <div><div class="label">Legal basis for this conversation</div>${rep ? (rep.ok ? `<div class="banner green">${esc(rep.who)} may hear PHI: ${esc(rep.basis)}</div>` : `<div class="banner amber">${esc(rep.who)} is not authorized. ${esc(rep.basis)}.</div><label class="check" style="margin-top:8px"><input type="checkbox" id="verbal" ${call.verbal ? "checked" : ""}>${esc(m.name)} is present and agrees that ${esc(rep.who.split(" ")[0])} joins (logged, 45 CFR 164.510(b))</label>`) : `<div class="banner green">Speaking with the member.</div>`}
+      ${m.consent.filter((c) => !c.ok).length && !rep ? `<p class="small muted">${esc(m.consent.find((c) => !c.ok).who)} is not on file. If ${esc(m.name.split(" ")[0])} wants her on the call, choose her as the party on the previous step and record his agreement.</p>` : ""}</div></div>`;
+  }
+  if (st === 4) body = `<div class="callgrid"><div><div class="label">Brief items covered</div>${m.brief.cover.map((c, i) => `<label class="check"><input type="checkbox" data-cov="${i}" ${call.covered.includes(i) ? "checked" : ""}>${esc(c)}</label>`).join("")}
+    <div class="field" style="margin-top:10px"><label for="says">What the member said (typed by RN, never generated)</label><textarea id="says" rows="3" placeholder="e.g. Oxygen not here yet; breathing OK at rest">${esc(call.says)}</textarea></div></div>
+    <div><div class="label">Tasks Compass will create on sign</div>${m.onSign.map((t) => `<div class="check">☐ ${esc(t)}</div>`).join("")}<p class="small muted">You can edit these after signing on the Tasks page.</p></div></div>`;
+  if (st === 5) {
+    const p = m.phones[call.phone] || {}; const who = call.party === "member" ? m.name : m.consent[+call.party.slice(3)].who;
+    body = `<div class="field"><label>Contact</label><input readonly value="${esc(stamp())} · ${esc(p.num || "")} · spoke with ${esc(who)} · identity verified"><span class="src">Dialer</span></div>
+      <div class="field"><label>What changed</label><textarea readonly rows="3">${esc(m.brief.changed.map((c) => "• " + c[0] + " [" + m.brief.cites[c[1] - 1] + "]").join("\n"))}</textarea><span class="src">Feeds, cited</span></div>
+      <div class="field"><label>Member reports</label><textarea id="says2" rows="2">${esc(call.says)}</textarea><span class="src rn">Typed by RN</span></div>
+      <div class="field"><label>Plan</label><textarea rows="3" readonly>${esc(m.onSign.map((t) => "• " + t).join("\n"))}</textarea><span class="src">Drafted from next best step</span></div>
+      <p class="small muted">Draft by Compass Assist · ${3 + call.covered.length} of ${5 + call.covered.length} fields pre-filled · edited by Maria R. Signing files the note to the CM system of record.</p>`;
+  }
+  const canNext = st === 3 ? call.ids.length >= 2 && (!call.party.startsWith("rep") || m.consent[+call.party.slice(3)].ok || call.verbal) : true;
+  const nextLabel = st === 2 && call.outcome !== "reached" ? "Log attempt" : st === 5 ? "Sign and file note" : "Continue";
+  $("#modal").innerHTML = `<header><div class="avatar">${m.ini}</div><h3>Call · ${esc(m.name)}</h3><span class="chip blue">${esc(m.best)}</span><div class="spacer" style="flex:1"></div><button class="btn sm" data-close>Close</button></header>
+  <div class="body"><div class="steps">${steps.map((s, i) => `<span class="${i + 1 === st ? "on" : i + 1 < st ? "ok" : ""}">${i + 1}. ${s}</span>`).join("")}</div>${body}
+  <div style="display:flex;justify-content:space-between;margin-top:14px;gap:8px">${st > 1 ? `<button class="btn" data-cstep="-1">Back</button>` : "<span></span>"}<button class="btn primary" data-cstep="1" ${canNext ? "" : "disabled"}>${nextLabel}</button></div></div>`;
+}
+function callNext() {
+  const m = M(call.id);
+  if (call.step === 1) { S.approved++; logIt(`Approved next best step for <b>${esc(m.name)}</b>`); }
+  if (call.step === 2) {
+    S.calls++; S.touches++;
+    if (call.outcome !== "reached") {
+      const p = m.phones[call.phone];
+      if (call.outcome === "wrong") { p.status = "dead"; p.note = "Wrong number · retired"; }
+      m.reach = Math.max(0, m.reach - 1);
+      logIt(`Call attempt to <b>${esc(m.name)}</b> on ${p.num}: ${call.outcome === "wrong" ? "wrong number, retired" : "no answer"}. Reach score lowered.`);
+      toast(`${call.outcome === "wrong" ? "Number retired" : "Attempt logged"}. ${esc(m.name)} re-ranked (score ${score(m)}).`);
+      save(); closeCall(); return;
+    }
+    S.connects++;
+    const p = m.phones[call.phone]; if (p.status === "unverified") p.status = "works";
+  }
+  if (call.step === 3) { if (call.verbal) logIt(`Logged ${esc(m.name)}'s verbal agreement for ${esc(m.consent.find((c) => !c.ok).who)} to join the call`); logIt(`Identity verified for <b>${esc(m.name)}</b> (2 of 3) · PHI unlocked`); }
+  if (call.step === 4) { const t = $("#says"); if (t) call.says = t.value; }
+  if (call.step === 5) {
+    const t = $("#says2"); if (t) call.says = t.value;
+    m.status = "done"; m.created = m.onSign.slice(); S.forward++;
+    m.onSign.forEach((x, i) => S.tasks.unshift({ t: x, due: Math.min(4, S.dayIdx + (i === 0 ? 0 : 1)), done: false, who: "Maria", m: m.id }));
+    if (m.milestones) m.milestones.forEach((l) => l.items.forEach((it) => { if (it.key === "toc") { it.st = "done"; it.label = "TOC contact made " + fmt(dateOf(S.dayIdx)).split(" ")[0]; } }));
+    m.goals.forEach((g) => { if (g.s === "Blocked") g.s = "At risk"; });
+    logIt(`✎ Note signed for <b>${esc(m.name)}</b>; ${m.onSign.length} tasks created; member moved forward`);
+    toast(`Note filed for ${esc(m.name)}. ${m.onSign.length} tasks created · North Star ${S.forward}/10.`);
+    save(); closeCall(); return;
+  }
+  call.step++; save(); renderCall();
+}
+
+/* ============================ PROMPT MODALS ============================ */
+function ask(title, html, onOk, okLabel = "Save") {
+  $("#modal").innerHTML = `<header><h3>${title}</h3><div style="flex:1"></div><button class="btn sm" data-close>Close</button></header><div class="body">${html}<div style="display:flex;justify-content:flex-end;gap:8px;margin-top:14px"><button class="btn" data-close>Cancel</button><button class="btn primary" id="askok">${okLabel}</button></div></div>`;
+  $("#scrim").classList.add("on");
+  $("#askok").onclick = () => { if (onOk() !== false) { $("#scrim").classList.remove("on"); render(); } };
+}
+function whyHere(m) {
+  ask(`Why ${esc(m.name)} is in this lane`, `<table><tbody><tr><td>Harm if delayed</td><td class="tab"><b>${m.harm}</b> / 5</td><td class="small muted">Clinician-owned rule for this signal</td></tr><tr><td>Time criticality</td><td class="tab"><b>${m.time}</b> / 5</td><td class="small muted">Nearest clock: TOC, therapy start, referral age</td></tr><tr><td>Reachable now</td><td class="tab"><b>${m.reach}</b> / 2</td><td class="small muted">Verified number, best-time window, rep available</td></tr><tr><td><b>Score</b></td><td class="tab"><b>${score(m)}</b></td><td class="small muted">≥ 18 act today · 10–17 this week · &lt; 10 watch</td></tr></tbody></table><p class="small muted">Thresholds are pilot assumptions, tuned weekly against RN overrides.</p>`, () => true, "OK");
+}
+
+/* ============================ RENDER + EVENTS ============================ */
+function render() {
+  nav();
+  const r = location.hash.slice(1) || "board";
+  let html = "";
+  if (r === "board") html = board();
+  else if (r === "transitions") html = transitions();
+  else if (r === "tasks") html = tasks();
+  else if (r === "insights") html = insights();
+  else if (r === "members") html = membersList();
+  else if (r.startsWith("member-")) html = memberPage(r.slice(7));
+  else html = board();
+  $("#app").innerHTML = html;
+}
+window.addEventListener("hashchange", () => { mtab = "plan"; render(); window.scrollTo(0, 0); });
+document.addEventListener("click", (e) => {
+  const t = e.target.closest("[data-call],[data-why],[data-restore],[data-mtab],[data-override],[data-dismiss],[data-cstep],[data-close],[data-tpick],[data-tsel],[data-ms],[data-sendrx],[data-regen],[data-addgoal],#addtask,#nextDay,#reset");
+  if (!t) return;
+  const d = t.dataset;
+  if (d.call) openCall(d.call);
+  else if (d.why) whyHere(M(d.why));
+  else if (d.restore) { const x = S.suppressed.find((s) => s.id === d.restore); x.restored = true; S.tasks.unshift({ t: "Review restored signal: " + x.text, due: S.dayIdx, done: false, who: "Maria" }); logIt(`RN restored a suppressed signal for <b>${x.member}</b>`); save(); render(); toast("Signal restored and added to Tasks."); }
+  else if (d.mtab) { mtab = d.mtab; render(); }
+  else if (d.override) { const m = M(d.override); ask(`Change lane for ${esc(m.name)}`, `<div class="field"><label for="ol">New lane</label><select id="ol"><option value="today">Act today</option><option value="week">This week</option><option value="watch">Watch</option></select></div><div class="field"><label for="or">Reason (required)</label><input id="or" placeholder="e.g. Member asked to be called Thursday"></div>`, () => { const v = $("#or").value.trim(); if (!v) { $("#or").focus(); return false; } m.laneOverride = $("#ol").value; S.overrides++; logIt(`RN moved <b>${esc(m.name)}</b> to ${$("#ol").selectedOptions[0].text}: “${esc(v)}”`); save(); toast("Lane changed; reason logged."); }); }
+  else if (d.dismiss) { const m = M(d.dismiss); ask(`Dismiss suggestion for ${esc(m.name)}`, `<div class="field"><label for="dr">Reason (required)</label><select id="dr"><option value="">Choose a reason</option><option>Already handled outside Compass</option><option>Data is wrong or out of date</option><option>Not clinically relevant</option><option>Member asked for a later contact</option></select></div><p class="small muted">Dismissals train the rules. A rule dismissed more than half the time is reviewed.</p>`, () => { const v = $("#dr").value; if (!v) return false; S.dismissed++; m.laneOverride = "watch"; logIt(`RN dismissed the next best step for <b>${esc(m.name)}</b>: ${esc(v)}`); save(); toast("Suggestion dismissed; reason logged."); }, "Dismiss"); }
+  else if (d.cstep) { if (+d.cstep < 0) { call.step--; renderCall(); } else callNext(); }
+  else if (d.close !== undefined) { if (call) closeCall(); else $("#scrim").classList.remove("on"); }
+  else if (d.tpick) { tsel = d.tpick; render(); }
+  else if (d.tsel) { tsel = d.tsel; }
+  else if (d.ms) { const [id, key] = d.ms.split(":"); const m = M(id); m.milestones.forEach((l) => l.items.forEach((it) => { if (it.key === key) { it.st = "done"; } })); logIt(`Milestone closed for <b>${esc(m.name)}</b>: ${esc(key.toUpperCase())}`); save(); render(); toast("Milestone marked done."); }
+  else if (d.sendrx) { const m = M(d.sendrx); S.tasks.unshift({ t: "Prescriber review: medication discrepancy for " + m.name, due: S.dayIdx, done: false, who: "Maria", m: m.id }); logIt(`Discrepancy sent to prescriber for <b>${esc(m.name)}</b> (no order changed)`); save(); render(); toast("Sent to prescriber; task created."); }
+  else if (d.regen) { const m = M(d.regen); S.briefs++; logIt(`✦ Brief regenerated for <b>${esc(m.name)}</b> with today's feeds`); save(); render(); toast("Brief regenerated from the latest feeds."); }
+  else if (d.addgoal) { const v = $("#newgoal").value.trim(); if (!v) return; M(d.addgoal).goals.push({ g: v, b: "Not yet assessed", s: "Due" }); logIt(`Goal added for <b>${esc(M(d.addgoal).name)}</b>: ${esc(v)}`); save(); render(); }
+  else if (t.id === "addtask") { const v = $("#newtask").value.trim(); if (!v) return; S.tasks.unshift({ t: v, due: +$("#newtaskday").value, done: false, who: "Maria" }); save(); render(); }
+  else if (t.id === "nextDay") { if (S.dayIdx >= 4) { toast("End of the demo week. Use Reset to start again."); return; } S.dayIdx++; S.members.forEach((m) => { if (m.status !== "done" && m.transition) { const toc = daysToToc(m); if (toc <= 0) m.time = 5; } if (m.status !== "done" && m.day < S.dayIdx) m.day = S.dayIdx; }); logIt(`Demo clock moved to ${now()}`); save(); render(); toast(`It is now ${now()}. Deadlines updated.`); }
+  else if (t.id === "reset") { S = seed(); save(); location.hash = "#board"; render(); toast("Demo data restored."); }
+});
+document.addEventListener("change", (e) => {
+  const t = e.target, d = t.dataset;
+  if (d.day) { const m = M(d.day); m.day = +t.value; logIt(`Planned <b>${esc(m.name)}</b> for ${DAYS[m.day]}`); save(); render(); }
+  else if (d.goal) { const [id, i] = d.goal.split(":"); M(id).goals[+i].s = t.value; logIt(`Goal status for <b>${esc(M(id).name)}</b> set to ${esc(t.value)}`); save(); }
+  else if (d.task !== undefined) { S.tasks[+d.task].done = t.checked; save(); render(); }
+  else if (call) {
+    if (t.name === "ph") call.phone = +t.value;
+    if (t.name === "party") call.party = t.value;
+    if (t.name === "res") call.outcome = t.value;
+    if (d.idf !== undefined) { const i = +d.idf; call.ids = t.checked ? [...new Set([...call.ids, i])] : call.ids.filter((x) => x !== i); }
+    if (t.id === "verbal") call.verbal = t.checked;
+    if (d.cov !== undefined) { const i = +d.cov; call.covered = t.checked ? [...new Set([...call.covered, i])] : call.covered.filter((x) => x !== i); }
+    if (t.id === "says" || t.id === "says2") { call.says = t.value; return; }
+    renderCall();
+  }
+});
+document.addEventListener("input", (e) => { if (call && e.target.id === "says") call.says = e.target.value; });
+// drag and drop: move a card to another lane (override with reason) or keep order
+document.addEventListener("dragstart", (e) => { const c = e.target.closest("[data-drag]"); if (c) e.dataTransfer.setData("text/plain", c.dataset.drag); });
+document.addEventListener("dragover", (e) => { const l = e.target.closest("[data-lane]"); if (l) { e.preventDefault(); l.classList.add("drop"); } });
+document.addEventListener("dragleave", (e) => { const l = e.target.closest("[data-lane]"); if (l) l.classList.remove("drop"); });
+document.addEventListener("drop", (e) => { const l = e.target.closest("[data-lane]"); if (!l) return; e.preventDefault(); l.classList.remove("drop"); const m = M(e.dataTransfer.getData("text/plain")); if (!m || lane(m) === l.dataset.lane || m.status === "done") return; const to = l.dataset.lane; ask(`Move ${esc(m.name)} to ${{ today: "Act today", week: "This week", watch: "Watch" }[to]}`, `<div class="field"><label for="dr2">Reason (required)</label><input id="dr2" placeholder="Why the score should not decide this one"></div>`, () => { const v = $("#dr2").value.trim(); if (!v) return false; m.laneOverride = to; S.overrides++; logIt(`RN dragged <b>${esc(m.name)}</b> to ${to}: “${esc(v)}”`); save(); toast("Moved; reason logged."); }, "Move"); });
+document.addEventListener("keydown", (e) => { if (e.key === "Escape" && $("#scrim").classList.contains("on")) { if (call) closeCall(); else $("#scrim").classList.remove("on"); } });
+render();
+</script>
+</body>
+</html>
